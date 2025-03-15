@@ -40,11 +40,13 @@ local currentRemotes = {}
 local remoteDataEvent = Instance.new("BindableEvent")
 local eventSet = false
 
+-- Connect an event to the remoteDataEvent
 local function connectEvent(callback)
     remoteDataEvent.Event:Connect(callback)
     eventSet = true
 end
 
+-- Hook for namecall method interception
 local nmcTrampoline
 nmcTrampoline = hookmetamethod(game, "__namecall", function(self, ...)
     if typeof(self) ~= "Instance" then
@@ -53,26 +55,28 @@ nmcTrampoline = hookmetamethod(game, "__namecall", function(self, ...)
 
     local method = getnamecallmethod()
     
+    -- Normalize method names
     if method == "fireServer" then
         method = "FireServer"
     elseif method == "invokeServer" then
         method = "InvokeServer"
     end
     
-    if remotesViewing[self.ClassName] and self ~= remoteDataEvent and remoteMethods[method] then
+    -- If we're dealing with remote objects
+    if remotesViewing[self.ClassName] and remoteMethods[method] then
         local remote = currentRemotes[self]
         local vargs = {select(1, ...)}
         
+        -- Ensure we are handling the remote object
         if not remote then
             remote = Remote.new(self)
             currentRemotes[self] = remote
         end
 
         local remoteIgnored = remote.Ignored
-        local remoteBlocked = remote.Blocked
         local argsIgnored = remote:AreArgsIgnored(vargs)
-        local argsBlocked = remote:AreArgsBlocked(vargs)
 
+        -- Fire the event if conditions are met
         if eventSet and not remoteIgnored and not argsIgnored then
             local call = {
                 script = getcallingscript(),
@@ -84,7 +88,8 @@ nmcTrampoline = hookmetamethod(game, "__namecall", function(self, ...)
             remoteDataEvent:Fire(self, call)
         end
 
-        if remoteBlocked or argsBlocked then
+        -- Block the call if conditions are met
+        if remote.Blocked or remote:AreArgsBlocked(vargs) then
             return
         end
     end
@@ -92,10 +97,12 @@ nmcTrampoline = hookmetamethod(game, "__namecall", function(self, ...)
     return nmcTrampoline(self, ...)
 end)
 
+-- Check permissions for method execution
 local function checkPermission(instance)
     return instance.ClassName ~= nil
 end
 
+-- Hook the remote method functions to log calls
 for _name, hook in pairs(methodHooks) do
     local originalMethod
     originalMethod = hookfunction(hook, newcclosure(function(self, ...)
@@ -106,10 +113,12 @@ for _name, hook in pairs(methodHooks) do
         local success = pcall(checkPermission, self)
         if not success then return originalMethod(self, ...) end
         
+        -- Only intercept if we are watching the correct remote class
         if self.ClassName == _name and remotesViewing[self.ClassName] and self ~= remoteDataEvent then
             local remote = currentRemotes[self]
             local vargs = {select(1, ...)}
 
+            -- Ensure remote exists
             if not remote then
                 remote = Remote.new(self)
                 currentRemotes[self] = remote
@@ -118,6 +127,7 @@ for _name, hook in pairs(methodHooks) do
             local remoteIgnored = remote.Ignored 
             local argsIgnored = remote:AreArgsIgnored(vargs)
             
+            -- Fire the event if conditions are met
             if eventSet and not remoteIgnored and not argsIgnored then
                 local call = {
                     script = getcallingscript(),
@@ -129,6 +139,7 @@ for _name, hook in pairs(methodHooks) do
                 remoteDataEvent:Fire(self, call)
             end
 
+            -- Block the method if conditions are met
             if remote.Blocked or remote:AreArgsBlocked(vargs) then
                 return
             end
