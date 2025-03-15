@@ -1,16 +1,16 @@
 local ModuleScanner = {}
-local Methods = import("modules/ModuleScanner")
+local Methods = require("modules/ModuleScanner")
 
-if not hasMethods(Methods.RequiredMethods) then
+if not Methods.hasMethods(Methods.RequiredMethods) then
     return ModuleScanner
 end
 
-local List, ListButton = import("ui/controls/List")
-local MessageBox, MessageType = import("ui/controls/MessageBox")
-local ContextMenu, ContextMenuButton = import("ui/controls/ContextMenu")
+local List, ListButton = require("ui/controls/List")
+local MessageBox, MessageType = require("ui/controls/MessageBox")
+local ContextMenu, ContextMenuButton = require("ui/controls/ContextMenu")
 
-local Page = import("rbxassetid://11389137937").Base.Body.Pages.ModuleScanner
-local Assets = import("rbxassetid://5042114982").ModuleScanner
+local Page = require("rbxassetid://11389137937").Base.Body.Pages.ModuleScanner
+local Assets = require("rbxassetid://5042114982").ModuleScanner
 
 local Query = Page.Query
 local Search = Query.Search
@@ -27,7 +27,7 @@ moduleList:BindContextMenu(ContextMenu.new({ pathContext }))
 pathContext:SetCallback(function()
     local selectedInstance = selectedLog.ModuleScript.Instance
 
-    setClipboard(getInstancePath(selectedInstance))
+    setclipboard(getInstancePath(selectedInstance))
     MessageBox.Show("Success", ("%s's path was copied to your clipboard."):format(selectedInstance.Name), MessageType.OK)
 end)
 
